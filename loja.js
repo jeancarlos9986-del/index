@@ -35,14 +35,17 @@ window.enviarPedidoFirebase = async function () {
 
     if (!nome || !fone) return alert("Preencha nome e telefone!");
 
-    // FORMATANDO PARA O SEU SISTEMA DE COZINHA RECONHECER
+    // Estrutura esperada pela cozinha:
     const lanchesFormatados = {};
-    const adicionaisFormatados = {}; // Criado para que os molhos apareçam na cozinha
+    const espetosFormatados = {}; // <--- ADICIONADO
+    const adicionaisFormatados = {}; 
 
     carrinho.forEach(item => {
-        // Separa itens normais de adicionais para a cozinha ler corretamente
+        // Ajuste a lógica de categoria conforme o seu catálogo
         if (item.cat === "Adicionais") {
             adicionaisFormatados[item.nome] = (adicionaisFormatados[item.nome] || 0) + 1;
+        } else if (item.cat === "Espetos") { // <--- NOVO FILTRO
+            espetosFormatados[item.nome] = (espetosFormatados[item.nome] || 0) + 1;
         } else {
             lanchesFormatados[item.nome] = (lanchesFormatados[item.nome] || 0) + 1;
         }
@@ -55,7 +58,8 @@ window.enviarPedidoFirebase = async function () {
         status: "Pendente",
         timestamp: Date.now(),
         lanches: lanchesFormatados,
-        adicionais: adicionaisFormatados, // Agora os molhos aparecem!
+        espetos: espetosFormatados,   // <--- AGORA A COZINHA VAI LER ISSO
+        adicionais: adicionaisFormatados,
         total: carrinho.reduce((acc, i) => acc + i.preco, 0)
     };
 
@@ -79,4 +83,5 @@ window.enviarPedidoFirebase = async function () {
         console.error("Erro ao enviar:", e);
         alert("Erro ao enviar pedido. Tente novamente.");
     }
+
 };
