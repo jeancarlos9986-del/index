@@ -1,7 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// COPIE AS CONFIGURAÇÕES DO SEU COZINHA.HTML AQUI
 const firebaseConfig = {
     apiKey: "AIzaSyDIcG9NqxQ7PLUB9Qu45FUWwvD1K7of-2s",
     authDomain: "fb-pedidos.firebaseapp.com",
@@ -16,16 +15,18 @@ const db = getFirestore(app);
 
 let carrinho = [];
 
-window.adicionarAoCarrinho = function (nome, preco) {
-    carrinho.push({ nome, preco });
+// ADICIONE O 'cat' (categoria) AQUI
+window.adicionarAoCarrinho = function (nome, preco, cat = "Lanches") {
+    carrinho.push({ nome, preco, cat });
     atualizarInterfaceCarrinho();
+    console.log(`Item adicionado: ${nome} | Categoria: ${cat}`);
 };
 
 function atualizarInterfaceCarrinho() {
     const btn = document.getElementById('cart-button');
     const count = document.getElementById('cart-count');
-    btn.style.display = carrinho.length > 0 ? 'block' : 'none';
-    count.innerText = carrinho.length;
+    if (btn) btn.style.display = carrinho.length > 0 ? 'block' : 'none';
+    if (count) count.innerText = carrinho.length;
 }
 
 window.enviarPedidoFirebase = async function () {
@@ -35,18 +36,18 @@ window.enviarPedidoFirebase = async function () {
 
     if (!nome || !fone) return alert("Preencha nome e telefone!");
 
-    // Estrutura esperada pela cozinha:
     const lanchesFormatados = {};
-    const espetosFormatados = {}; // <--- ADICIONADO
+    const espetosFormatados = {};
     const adicionaisFormatados = {}; 
 
+    // O processamento agora depende do 'item.cat' definido no clique do botão
     carrinho.forEach(item => {
-        // Ajuste a lógica de categoria conforme o seu catálogo
         if (item.cat === "Adicionais") {
             adicionaisFormatados[item.nome] = (adicionaisFormatados[item.nome] || 0) + 1;
-        } else if (item.cat === "Espetos") { // <--- NOVO FILTRO
+        } else if (item.cat === "Espetos") {
             espetosFormatados[item.nome] = (espetosFormatados[item.nome] || 0) + 1;
         } else {
+            // Se cat for 'Lanches' ou qualquer outro não definido, cai aqui
             lanchesFormatados[item.nome] = (lanchesFormatados[item.nome] || 0) + 1;
         }
     });
@@ -58,30 +59,23 @@ window.enviarPedidoFirebase = async function () {
         status: "Pendente",
         timestamp: Date.now(),
         lanches: lanchesFormatados,
-        espetos: espetosFormatados,   // <--- AGORA A COZINHA VAI LER ISSO
+        espetos: espetosFormatados,
         adicionais: adicionaisFormatados,
         total: carrinho.reduce((acc, i) => acc + i.preco, 0)
     };
 
     try {
-        // 1. Enviamos o pedido e guardamos a referência (docRef)
         const docRef = await addDoc(collection(db, "pedidos"), novoPedido);
-
-        // 2. Pegamos o ID gerado pelo Firebase
-        const pedidoId = docRef.id;
-
-        alert("🍔 Pedido recebido! Acompanhe o status na próxima tela.");
+        alert("🍔 Pedido recebido! Acompanhe o status.");
 
         carrinho = [];
-        fecharModalCarrinho();
+        // Certifique-se que estas funções existem no seu projeto
+        if (typeof fecharModalCarrinho === 'function') fecharModalCarrinho();
         atualizarInterfaceCarrinho();
 
-        // 3. Redirecionamos para a página de status passando o ID na URL
-        window.location.href = `status.html?id=${pedidoId}`;
-
+        window.location.href = `status.html?id=${docRef.id}`;
     } catch (e) {
         console.error("Erro ao enviar:", e);
         alert("Erro ao enviar pedido. Tente novamente.");
     }
-
 };
